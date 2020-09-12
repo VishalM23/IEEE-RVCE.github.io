@@ -1,12 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {makeStyles} from '@material-ui/core/styles';
-import {AppBar, Toolbar, Button, useScrollTrigger, IconButton, List, ListItem, ListItemText, SwipeableDrawer} from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+import { AppBar, Toolbar, Button, useScrollTrigger, IconButton, List, ListItem, ListItemText, SwipeableDrawer } from '@material-ui/core';
 import MenuIcon from '@material-ui/icons/Menu';
-import {Link} from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import AppBarMenu from './AppBarMenu';
-import {navs, societies, affinities} from '../links';
+import { navs } from '../links';
 
 // All the styling information for the whole header component is in here
 const useStyles = makeStyles((theme) => ({
@@ -47,11 +47,29 @@ const useStyles = makeStyles((theme) => ({
     menuButton: {
         marginRight: theme.spacing(2),
         [theme.breakpoints.up('md')]: {
-          display: 'none',
+            display: 'none',
         },
         display: 'block',
     },
 }))
+
+function AdaptButton(props) {
+    const classes = useStyles();
+    const { isDesktop, to, name,onClick } = props
+    if (isDesktop) {
+        return (
+            <Link to={to} className={classes.nav}>
+                <Button color="inherit" onClick={onClick} className={classes.button}>{name}</Button>
+            </Link>
+        )
+    } else {
+        return (
+            <ListItem button key={name}>
+                <ListItemText primary={name} />
+            </ListItem>
+        )
+    }
+}
 
 export default function Header(props) {
     // All styles are in classes now
@@ -75,12 +93,12 @@ export default function Header(props) {
             threshold: 0,
             target: window ? window() : undefined,
         });
-    
+
         return React.cloneElement(children, {
             elevation: trigger ? 4 : 0,
         });
     }
-    
+
     // Support for above function
     ElevationScroll.propTypes = {
         children: PropTypes.element.isRequired,
@@ -92,43 +110,55 @@ export default function Header(props) {
         localStorage.removeItem('atoken')
         window.location.replace(window.location.origin)
     }
-  
+
     // Renders all the navigation buttons by traversing array
-    const Buttons = () => {
-        let buttons = navs.map((nav) => {
-            if(nav.name==='Societies'){
-                return (
-                    <AppBarMenu name={nav.name} items={societies}/> 
-                )
-            }
-            else if(nav.name==='Affinities'){
-                return(
-                    <AppBarMenu name={nav.name} items={affinities}/>
-                )
-            }
-            else if(nav.name==='Login'){
-                if(loggedin) {
-                    return(
-                        <Button color="inherit" onClick={logout} className={classes.button}>Logout</Button>
-                    )
+    const Buttons = (props) => {
+        const { isDesktop } = props;
+        return navs.map((nav) => {
+            if (nav.isMenu) {
+                return <AppBarMenu name={nav.name} items={nav.children} />;
+            } else if (nav.isLogin) {
+                if (loggedin) {
+                    return <AdaptButton onClick={logout} isDesktop={isDesktop} name="Logout"/>;
+                    // return (
+                    //     <Button color="inherit" onClick={logout} className={classes.button}>Logout</Button>
+                    // )
                 }
-                else{
-                    return(
+                else {
+                    if (isDesktop) {
+                        return (
+                            <Link to={nav.link} className={classes.nav}>
+                                <Button color="inherit" className={classes.button}>{nav.name}</Button>
+                            </Link>
+                        )
+                    }
+                    else {
+                        return (
+                            <ListItem button key={nav.name}>
+                                <ListItemText primary={nav.name} />
+                            </ListItem>
+                        )
+                    }
+                }
+            } else {
+                // the standard button
+                if (isDesktop) {
+                    return (
                         <Link to={nav.link} className={classes.nav}>
                             <Button color="inherit" className={classes.button}>{nav.name}</Button>
                         </Link>
-                    )   
+                    )
+                } else {
+                    return (
+                        <Link to={nav.link} className={classes.nav}>
+                            <ListItem button key={nav.name}>
+                                <ListItemText primary={nav.name} />
+                            </ListItem>
+                        </Link>
+                    )
                 }
             }
-            else{
-                return(
-                    <Link to={nav.link} className={classes.nav}>
-                        <Button color="inherit" className={classes.button}>{nav.name}</Button>
-                    </Link>
-                )
-            }
         })
-        return buttons
     }
 
     // Handles toggle of drawer
@@ -139,72 +169,43 @@ export default function Header(props) {
         setDrawer(open)
     }
 
-    // Makes list for drawer
-    const list = () => (
-        <div>
-          <List>
-            {
-                navs.map((nav) => {
-                    if(nav.name==='Societies'){
-                        return (
-                            <AppBarMenu name={nav.name} items={societies}/> 
-                        )
-                    }
-                    else if(nav.name==='Affinities'){
-                        return(
-                            <AppBarMenu name={nav.name} items={affinities}/>
-                        )
-                    }
-                    else{
-                        return(
-                            <Link to={nav.link} className={classes.nav}>
-                                <ListItem button key={nav.name}>
-                                        <ListItemText primary={nav.name}/>      
-                                </ListItem>
-                            </Link>
-                        )
-                    }
-                })
-            }
-          </List>
-        </div>
-    );
-
     // Combines all the stuff above and makes the header. It works great on phones as well.
-    return(
+    return (
         <div className={classes.root}>
             <ElevationScroll {...props}>
                 <AppBar position="fixed" className={classes.appbar}>
-                    <Toolbar style={{padding: 0}}>
-                            <div className={classes.brand}>
-                                <img src='/assets/images/rvce_logo.png' height="70px" style={{float:"left"}} alt="RV logo"/>
-                            </div>
-                            
-                            <div className={classes.navs}>
-                                <Buttons/>
-                            </div>
-                            
-                            <div className={classes.brand}>
-                                <img src='/assets/images/ieee_blue.jpg' height="40px" style={{float:"right", marginRight: "3%"}} alt="IEEE logo"/>
-                            </div>
-                            <IconButton
-                                color="primary"
-                                onClick={handleDrawerToggle(true)}
-                                className={classes.menuButton}
-                            >
-                                <MenuIcon />
-                            </IconButton>
+                    <Toolbar style={{ padding: 0 }}>
+                        <div className={classes.brand}>
+                            <img src='/assets/images/rvce_logo.png' height="70px" style={{ float: "left" }} alt="RV logo" />
+                        </div>
+
+                        <div className={classes.navs}>
+                            <Buttons isDesktop={true} />
+                        </div>
+
+                        <div className={classes.brand}>
+                            <img src='/assets/images/ieee_blue.jpg' height="40px" style={{ float: "right", marginRight: "3%" }} alt="IEEE logo" />
+                        </div>
+                        <IconButton
+                            color="primary"
+                            onClick={handleDrawerToggle(true)}
+                            className={classes.menuButton}
+                        >
+                            <MenuIcon />
+                        </IconButton>
                     </Toolbar>
                 </AppBar>
             </ElevationScroll>
-            <SwipeableDrawer 
-            anchor='right' 
-            open={drawer} 
-            onClose={handleDrawerToggle(false)}
-            onOpen={handleDrawerToggle(true)}
+            <SwipeableDrawer
+                anchor='right'
+                open={drawer}
+                onClose={handleDrawerToggle(false)}
+                onOpen={handleDrawerToggle(true)}
             >
-                {list()}
-            </SwipeableDrawer>  
+                <div>
+                    <Buttons />
+                </div>
+            </SwipeableDrawer>
         </div>
     )
 }
